@@ -290,7 +290,7 @@
 
 <script>
   // ── Config ───────────────────────────────────────────────────────────────
-  const CORS   = 'https://corsproxy.io/?url=';
+  const CORS   = 'https://cors.eu.org/';
   const AJAX   = 'https://www.animetoast.cc/wp-admin/admin-ajax.php';
   const STORE  = 'anime_progress'; // localStorage key
 
@@ -385,8 +385,8 @@
   const hideError = ()  => { errorBar.style.display = 'none'; };
 
   // ── Fetch helpers ─────────────────────────────────────────────────────────
-  const proxyGet  = url  => fetch(CORS + encodeURIComponent(url)).then(r => r.text());
-  const proxyPost = (url, body) => fetch(CORS + encodeURIComponent(url), {
+  const proxyGet  = url  => fetch(CORS + url).then(r => r.text());
+  const proxyPost = (url, body) => fetch(CORS + url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
