@@ -307,17 +307,21 @@
       ],
     },
     {
+      id: 'frieren',
+      label: 'Frieren',
+      seasons: [
+        // S1: AJAX mode via WP admin-ajax
+        { label: 'Staffel 1', type: 'ajax', slug: 'sousou-no-frieren-ger-dub', title: 'Sousou no Frieren Dub S1' },
+        // S2: ?link=N pages with vidmoly iframes; Ep N → link=(15+N)
+        { label: 'Staffel 2', type: 'link', slug: 'sousou-no-frieren-2nd-season-ger-dub', linkOffset: 15, episodeCount: 16 },
+      ],
+    },
+    {
       id: 'op',
       label: 'One Piece',
-      type: 'link',
       seasons: [
-        {
-          label: 'Ger Dub',
-          slug: 'one-piece-ger-dub',
-          // Episodes from Tab2 "V" server: Ep N maps to ?link=(43+N)
-          linkOffset: 43,
-          episodeCount: 24,
-        },
+        // Gyojin-tou-hen Ger Sub: ?link=N pages with VOE href; Ep N → link=(N-1)
+        { label: 'Ger Sub', type: 'link', slug: 'one-piece-gyojin-tou-hen-ger-sub', linkOffset: -1, episodeCount: 17 },
       ],
     },
   ];
@@ -424,7 +428,7 @@
 
     seasonDiv.style.display   = multi ? 'block' : 'none';
     seasonTabsEl.style.display = multi ? 'flex'  : 'none';
-    serverWrap.style.display  = anime.type === 'ajax' ? 'flex' : 'none';
+    serverWrap.style.display  = seasons[activeSeason]?.type === 'ajax' ? 'flex' : 'none';
 
     if (!multi) return;
 
@@ -441,6 +445,9 @@
         saveProgress();
         seasonTabsEl.querySelectorAll('.season-tab').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        // Update server picker visibility for new season type
+        const anime = ANIME_LIST[activeAnime];
+        serverWrap.style.display = anime.seasons[idx]?.type === 'ajax' ? 'flex' : 'none';
         loadSeason(idx);
       });
     });
@@ -464,7 +471,7 @@
     placeholder.innerHTML = `<div class="play-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div><p>Episode auswählen</p>`;
 
     try {
-      if (anime.type === 'ajax') {
+      if (season.type === 'ajax') {
         await loadAjaxEpisodes(season, resumeEp);
       } else {
         loadLinkEpisodes(season, resumeEp);
@@ -534,7 +541,7 @@
 
     try {
       let embedUrl;
-      if (anime.type === 'ajax') {
+      if (season.type === 'ajax') {
         const data = await proxyPost(AJAX,
           `action=get_episode_data&title=${encodeURIComponent(season.title)}&server=${serverSelect.value}&episode=${epNum}&nonce=${nonce}`
         );
@@ -542,12 +549,19 @@
         embedUrl = data.data.url;
         metaEp.textContent = `Folge ${epNum} / ${data.data.total || episodes.length}`;
       } else {
-        // Link mode: fetch the ?link=N page, extract iframe src
+        // Link mode: fetch ?link=N page, extract embed URL
         const linkN = season.linkOffset + epNum;
         const html  = await proxyGet(`https://www.animetoast.cc/${season.slug}/?link=${linkN}`);
-        const m     = html.match(/<iframe[^>]+src="(https?:\/\/[^"]+)"/i);
-        if (!m) throw new Error('Kein Embed gefunden');
-        embedUrl = m[1];
+        // Strategy 1: <iframe src="...">
+        const iframeM = html.match(/<iframe[^>]+src="(https?:\/\/[^"]+)"/i);
+        if (iframeM) {
+          embedUrl = iframeM[1];
+        } else {
+          // Strategy 2: player-embed <a href="https://voe.sx/..."> → convert to embed URL
+          const voeM = html.match(/id="player-embed"[^]*?href="(https?:\/\/voe\.sx\/([^"]+))"/i);
+          if (!voeM) throw new Error('Kein Embed gefunden');
+          embedUrl = `https://voe.sx/e/${voeM[2]}`;
+        }
         metaEp.textContent = `Folge ${epNum} / ${season.episodeCount}`;
       }
 
