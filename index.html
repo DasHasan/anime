@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jujutsu Kaisen</title>
+  <title>Anime</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -29,76 +29,78 @@
       flex-direction: column;
     }
 
-    /* ── Top bar ───────────────────────────────────── */
+    /* ── Top bar ───────────────────────────── */
     .topbar {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 12px 20px;
+      gap: 12px;
+      padding: 10px 16px;
       border-bottom: 1px solid var(--border);
       background: var(--surface);
       flex-shrink: 0;
-    }
-    .topbar-title {
-      font-size: 1rem;
-      font-weight: 800;
-      letter-spacing: .03em;
-      background: linear-gradient(90deg, var(--accent2), #d4b0ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    /* Season tabs in topbar */
-    .season-tabs {
-      display: flex;
-      gap: 6px;
+    /* Anime switcher */
+    .anime-tabs { display: flex; gap: 6px; }
+    .anime-tab {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: .82rem;
+      font-weight: 700;
+      transition: all .15s;
     }
+    .anime-tab:hover { border-color: var(--accent2); color: var(--text); }
+    .anime-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* Season tabs */
+    .season-tabs { display: flex; gap: 5px; }
     .season-tab {
       background: transparent;
       border: 1px solid var(--border);
       color: var(--muted);
-      padding: 5px 14px;
+      padding: 5px 12px;
       border-radius: 20px;
       cursor: pointer;
-      font-size: .78rem;
+      font-size: .75rem;
       font-weight: 600;
       transition: all .15s;
     }
     .season-tab:hover { border-color: var(--accent); color: var(--text); }
-    .season-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .season-tab.active { background: var(--card); border-color: var(--accent2); color: var(--accent2); }
+
+    .topbar-divider {
+      width: 1px; height: 22px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
 
     /* Server picker */
-    .server-pick {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .server-pick label { font-size: .75rem; color: var(--muted); }
+    .server-pick { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+    .server-pick label { font-size: .73rem; color: var(--muted); }
     .server-pick select {
       background: var(--card);
       border: 1px solid var(--border);
       color: var(--text);
       padding: 4px 8px;
       border-radius: 6px;
-      font-size: .78rem;
+      font-size: .75rem;
       cursor: pointer;
     }
 
-    /* ── Main layout: player left, episodes right ── */
+    /* ── Main layout ───────────────────────── */
     .layout {
       display: flex;
       flex: 1;
       overflow: hidden;
-      height: calc(100vh - 49px); /* subtract topbar */
+      height: calc(100vh - 49px);
     }
 
-    /* ── Player column ─────────────────────────────── */
+    /* ── Player column ─────────────────────── */
     .player-col {
       flex: 1;
       display: flex;
@@ -106,7 +108,6 @@
       min-width: 0;
       background: #000;
     }
-
     .player-box {
       flex: 1;
       position: relative;
@@ -119,52 +120,44 @@
     }
     .player-placeholder {
       position: absolute; inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
       gap: 14px;
       background: #0a0b0f;
       color: var(--muted);
     }
-    .player-placeholder .play-icon {
-      width: 72px; height: 72px;
+    .play-icon {
+      width: 68px; height: 68px;
       border-radius: 50%;
       background: var(--card);
       display: flex; align-items: center; justify-content: center;
-      opacity: .4;
+      opacity: .35;
     }
-    .player-placeholder p { font-size: .9rem; }
+    .player-placeholder p { font-size: .88rem; }
 
-    /* meta bar below player */
     .player-meta-bar {
       background: var(--surface);
       border-top: 1px solid var(--border);
-      padding: 10px 18px;
+      padding: 9px 16px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
       flex-shrink: 0;
     }
-    .meta-left { display: flex; align-items: center; gap: 14px; }
-    .meta-series { font-size: .78rem; color: var(--muted); }
-    .meta-ep {
-      font-size: .92rem;
-      font-weight: 700;
-    }
+    .meta-anime { font-size: .72rem; color: var(--muted); }
+    .meta-ep { font-size: .9rem; font-weight: 700; }
     .resume-badge {
-      font-size: .7rem;
+      font-size: .68rem;
       background: var(--accent);
       color: #fff;
-      padding: 2px 8px;
+      padding: 2px 7px;
       border-radius: 10px;
       font-weight: 600;
     }
 
-    /* ── Episode sidebar ───────────────────────────── */
+    /* ── Episode sidebar ───────────────────── */
     .ep-sidebar {
-      width: 280px;
+      width: 270px;
       flex-shrink: 0;
       background: var(--surface);
       border-left: 1px solid var(--border);
@@ -173,9 +166,9 @@
       overflow: hidden;
     }
     .ep-sidebar-header {
-      padding: 12px 16px;
+      padding: 11px 14px;
       border-bottom: 1px solid var(--border);
-      font-size: .72rem;
+      font-size: .7rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: .08em;
@@ -191,12 +184,11 @@
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
     }
-
     .ep-item {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 10px 16px;
+      gap: 10px;
+      padding: 9px 14px;
       cursor: pointer;
       border-bottom: 1px solid var(--border);
       transition: background .1s;
@@ -204,30 +196,18 @@
     }
     .ep-item:last-child { border-bottom: none; }
     .ep-item:hover { background: var(--card); }
-    .ep-item.active {
-      background: #1e1535;
-      border-left: 2px solid var(--accent2);
-    }
+    .ep-item.active { background: #1e1535; border-left: 2px solid var(--accent2); }
     .ep-item.watched .ep-num { color: var(--muted); }
     .ep-item.watched::after {
-      content: '✓';
-      position: absolute;
-      right: 14px;
-      font-size: .7rem;
-      color: var(--accent);
-      font-weight: 700;
+      content: '✓'; position: absolute; right: 12px;
+      font-size: .68rem; color: var(--accent); font-weight: 700;
     }
-    .ep-num {
-      font-size: .72rem;
-      font-weight: 700;
-      color: var(--accent2);
-      min-width: 24px;
-    }
-    .ep-title { font-size: .83rem; line-height: 1.35; }
+    .ep-num { font-size: .7rem; font-weight: 700; color: var(--accent2); min-width: 22px; }
+    .ep-title { font-size: .82rem; line-height: 1.3; }
 
-    /* ── Spinner ───────────────────────────────────── */
+    /* ── Spinner ───────────────────────────── */
     .spinner {
-      width: 32px; height: 32px;
+      width: 30px; height: 30px;
       border: 2px solid var(--border);
       border-top-color: var(--accent2);
       border-radius: 50%;
@@ -235,114 +215,130 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Error bar ─────────────────────────────────── */
+    /* ── Error bar ─────────────────────────── */
     .error-bar {
       background: #1f0a0a;
       border-bottom: 1px solid var(--danger);
       color: #fca5a5;
-      padding: 8px 18px;
-      font-size: .8rem;
+      padding: 7px 16px;
+      font-size: .78rem;
       display: none;
       flex-shrink: 0;
     }
 
-    /* ── Responsive ────────────────────────────────── */
+    /* ── Responsive ────────────────────────── */
     @media (max-width: 700px) {
       .layout { flex-direction: column; height: auto; }
       .player-col { height: 56vw; min-height: 200px; }
-      .ep-sidebar { width: 100%; height: 260px; border-left: none; border-top: 1px solid var(--border); }
-      .topbar { flex-wrap: wrap; gap: 8px; }
+      .ep-sidebar { width: 100%; height: 240px; border-left: none; border-top: 1px solid var(--border); }
+      .server-pick { margin-left: 0; }
     }
   </style>
 </head>
 <body>
 
-<!-- Top bar -->
 <div class="topbar">
-  <span class="topbar-title">呪術廻戦 · Jujutsu Kaisen</span>
-  <div class="topbar-right">
-    <div class="season-tabs" id="season-tabs"></div>
-    <div class="server-pick">
-      <label for="server-select">Server</label>
-      <select id="server-select">
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-      </select>
-    </div>
+  <div class="anime-tabs" id="anime-tabs"></div>
+  <div class="topbar-divider" id="season-divider" style="display:none;"></div>
+  <div class="season-tabs" id="season-tabs"></div>
+  <div class="server-pick" id="server-wrap" style="display:none;">
+    <label for="server-select">Server</label>
+    <select id="server-select">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+    </select>
   </div>
 </div>
 
-<!-- Error bar -->
 <div class="error-bar" id="error-bar"></div>
 
-<!-- Main layout -->
 <div class="layout">
-
-  <!-- Player -->
   <div class="player-col">
     <div class="player-box">
       <div class="player-placeholder" id="placeholder">
         <div class="play-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         </div>
         <p>Episode auswählen</p>
       </div>
       <iframe id="player-frame" allowfullscreen style="display:none;"></iframe>
     </div>
     <div class="player-meta-bar">
-      <div class="meta-left">
-        <div>
-          <div class="meta-series" id="meta-series">–</div>
-          <div class="meta-ep" id="meta-ep"></div>
-        </div>
-        <span class="resume-badge" id="resume-badge" style="display:none;">Fortgesetzt</span>
+      <div>
+        <div class="meta-anime" id="meta-anime">–</div>
+        <div class="meta-ep" id="meta-ep"></div>
       </div>
+      <span class="resume-badge" id="resume-badge" style="display:none;">Fortgesetzt</span>
     </div>
   </div>
 
-  <!-- Episode sidebar -->
   <div class="ep-sidebar">
     <div class="ep-sidebar-header">
       <span>Episoden</span>
       <span id="ep-count">–</span>
     </div>
     <div class="ep-list" id="ep-list">
-      <div style="padding:32px;text-align:center;">
-        <div class="spinner" style="margin:0 auto 12px;"></div>
-        <p style="font-size:.8rem;color:var(--muted);">Lade…</p>
+      <div style="padding:28px;text-align:center;">
+        <div class="spinner" style="margin:0 auto 10px;"></div>
+        <p style="font-size:.78rem;color:var(--muted);">Lade…</p>
       </div>
     </div>
   </div>
-
 </div>
 
 <script>
-  // ── Config ──────────────────────────────────────────────────────────────
-  const CORS_PROXY = 'https://corsproxy.io/?url=';
-  const AJAX_URL   = 'https://www.animetoast.cc/wp-admin/admin-ajax.php';
-  const STORAGE_KEY = 'jjk_progress'; // { seriesIdx, episode }
+  // ── Config ───────────────────────────────────────────────────────────────
+  const CORS   = 'https://corsproxy.io/?url=';
+  const AJAX   = 'https://www.animetoast.cc/wp-admin/admin-ajax.php';
+  const STORE  = 'anime_progress'; // localStorage key
 
-  const SERIES = [
-    { label: 'Staffel 1', slug: 'jujutsu-kaisen-ger-dub',            title: 'Jujutsu Kaisen Dub S1' },
-    { label: 'Staffel 2', slug: 'jujutsu-kaisen-2nd-season-ger-dub', title: 'Jujutsu Kaisen Dub S2' },
+  // type:'ajax'  → uses WP admin-ajax get_episode_data (JJK)
+  // type:'link'  → fetches ?link=N page and extracts iframe src (One Piece)
+  const ANIME_LIST = [
+    {
+      id: 'jjk',
+      label: 'Jujutsu Kaisen',
+      type: 'ajax',
+      seasons: [
+        { label: 'Staffel 1', slug: 'jujutsu-kaisen-ger-dub',            title: 'Jujutsu Kaisen Dub S1' },
+        { label: 'Staffel 2', slug: 'jujutsu-kaisen-2nd-season-ger-dub', title: 'Jujutsu Kaisen Dub S2' },
+      ],
+    },
+    {
+      id: 'op',
+      label: 'One Piece',
+      type: 'link',
+      seasons: [
+        {
+          label: 'Ger Dub',
+          slug: 'one-piece-ger-dub',
+          // Episodes from Tab2 "V" server: Ep N maps to ?link=(43+N)
+          linkOffset: 43,
+          episodeCount: 24,
+        },
+      ],
+    },
   ];
 
   // ── State ────────────────────────────────────────────────────────────────
-  let nonce         = null;
-  let activeSeries  = 0;
+  let activeAnime   = 0;
+  let activeSeason  = 0;
   let activeEpisode = null;
   let episodes      = [];
-  let watchedEps    = {};   // { "0": Set([1,2,3...]), "1": Set([...]) }
+  let nonce         = null;
+  let watchedEps    = {}; // "animeId:seasonIdx" → Set of ep numbers
 
   // ── Persistence ──────────────────────────────────────────────────────────
+  function progressKey() { return `${ANIME_LIST[activeAnime].id}:${activeSeason}`; }
+
   function loadProgress() {
     try {
-      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      activeSeries = raw.seriesIdx ?? 0;
-      // Rebuild watched sets
-      watchedEps = {};
+      const raw = JSON.parse(localStorage.getItem(STORE) || '{}');
+      activeAnime  = raw.anime  ?? 0;
+      activeSeason = raw.season ?? 0;
+      watchedEps   = {};
       for (const [k, v] of Object.entries(raw.watched || {})) {
         watchedEps[k] = new Set(v);
       }
@@ -352,144 +348,184 @@
 
   function saveProgress() {
     const watched = {};
-    for (const [k, v] of Object.entries(watchedEps)) {
-      watched[k] = [...v];
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      seriesIdx: activeSeries,
-      episode:   activeEpisode,
-      watched,
+    for (const [k, v] of Object.entries(watchedEps)) watched[k] = [...v];
+    localStorage.setItem(STORE, JSON.stringify({
+      anime: activeAnime, season: activeSeason, episode: activeEpisode, watched,
     }));
   }
 
-  function markWatched(seriesIdx, epNum) {
-    if (!watchedEps[seriesIdx]) watchedEps[seriesIdx] = new Set();
-    watchedEps[seriesIdx].add(epNum);
+  function markWatched(epNum) {
+    const k = progressKey();
+    if (!watchedEps[k]) watchedEps[k] = new Set();
+    watchedEps[k].add(epNum);
     saveProgress();
-    // Update checkmark in list
-    const el = epList.querySelector(`[data-ep="${epNum}"]`);
-    if (el) el.classList.add('watched');
+    epListEl.querySelector(`[data-ep="${epNum}"]`)?.classList.add('watched');
   }
 
-  // ── DOM refs ─────────────────────────────────────────────────────────────
-  const seasonTabs   = document.getElementById('season-tabs');
-  const epList       = document.getElementById('ep-list');
-  const epCount      = document.getElementById('ep-count');
+  // ── DOM ───────────────────────────────────────────────────────────────────
+  const animeTabsEl  = document.getElementById('anime-tabs');
+  const seasonTabsEl = document.getElementById('season-tabs');
+  const seasonDiv    = document.getElementById('season-divider');
+  const serverWrap   = document.getElementById('server-wrap');
+  const serverSelect = document.getElementById('server-select');
+  const epListEl     = document.getElementById('ep-list');
+  const epCountEl    = document.getElementById('ep-count');
   const playerFrame  = document.getElementById('player-frame');
   const placeholder  = document.getElementById('placeholder');
-  const metaSeries   = document.getElementById('meta-series');
+  const metaAnime    = document.getElementById('meta-anime');
   const metaEp       = document.getElementById('meta-ep');
   const resumeBadge  = document.getElementById('resume-badge');
-  const serverSelect = document.getElementById('server-select');
   const errorBar     = document.getElementById('error-bar');
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
-  function showError(msg) { errorBar.textContent = msg; errorBar.style.display = 'block'; }
-  function hideError()    { errorBar.style.display = 'none'; }
+  const showError = msg => { errorBar.textContent = msg; errorBar.style.display = 'block'; };
+  const hideError = ()  => { errorBar.style.display = 'none'; };
 
-  function proxyPost(url, body) {
-    return fetch(CORS_PROXY + encodeURIComponent(url), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-    }).then(r => r.json());
-  }
+  // ── Fetch helpers ─────────────────────────────────────────────────────────
+  const proxyGet  = url  => fetch(CORS + encodeURIComponent(url)).then(r => r.text());
+  const proxyPost = (url, body) => fetch(CORS + encodeURIComponent(url), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  }).then(r => r.json());
 
-  function proxyGet(url) {
-    return fetch(CORS_PROXY + encodeURIComponent(url)).then(r => r.text());
-  }
-
-  async function fetchNonce(slug) {
+  async function getNonce(slug) {
     const html = await proxyGet(`https://www.animetoast.cc/${slug}/`);
     const m = html.match(/"nonce":"([^"]+)"/);
     if (!m) throw new Error('Nonce nicht gefunden');
     return m[1];
   }
 
-  // ── Season tabs ──────────────────────────────────────────────────────────
-  function buildSeasonTabs() {
-    seasonTabs.innerHTML = SERIES.map((s, i) => `
-      <button class="season-tab ${i === activeSeries ? 'active' : ''}" data-idx="${i}">${s.label}</button>
+  // ── Build tabs ────────────────────────────────────────────────────────────
+  function buildAnimeTabs() {
+    animeTabsEl.innerHTML = ANIME_LIST.map((a, i) => `
+      <button class="anime-tab ${i === activeAnime ? 'active' : ''}" data-idx="${i}">${a.label}</button>
     `).join('');
-
-    seasonTabs.querySelectorAll('.season-tab').forEach(btn => {
+    animeTabsEl.querySelectorAll('.anime-tab').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.idx);
-        if (idx === activeSeries) return;
-        seasonTabs.querySelectorAll('.season-tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        activeSeries = idx;
-        nonce = null;
+        if (idx === activeAnime) return;
+        activeAnime  = idx;
+        activeSeason = 0;
+        nonce        = null;
+        activeEpisode = null;
         saveProgress();
-        loadEpisodes(idx);
+        animeTabsEl.querySelectorAll('.anime-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        buildSeasonTabs();
+        loadSeason(0);
       });
     });
   }
 
-  // ── Load episode list ────────────────────────────────────────────────────
-  async function loadEpisodes(seriesIdx, resumeEp = null) {
-    const s = SERIES[seriesIdx];
+  function buildSeasonTabs() {
+    const anime   = ANIME_LIST[activeAnime];
+    const seasons = anime.seasons;
+    const multi   = seasons.length > 1;
+
+    seasonDiv.style.display   = multi ? 'block' : 'none';
+    seasonTabsEl.style.display = multi ? 'flex'  : 'none';
+    serverWrap.style.display  = anime.type === 'ajax' ? 'flex' : 'none';
+
+    if (!multi) return;
+
+    seasonTabsEl.innerHTML = seasons.map((s, i) => `
+      <button class="season-tab ${i === activeSeason ? 'active' : ''}" data-idx="${i}">${s.label}</button>
+    `).join('');
+    seasonTabsEl.querySelectorAll('.season-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        if (idx === activeSeason) return;
+        activeSeason = idx;
+        nonce = null;
+        activeEpisode = null;
+        saveProgress();
+        seasonTabsEl.querySelectorAll('.season-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadSeason(idx);
+      });
+    });
+  }
+
+  // ── Load episode list ─────────────────────────────────────────────────────
+  async function loadSeason(seasonIdx, resumeEp = null) {
+    const anime  = ANIME_LIST[activeAnime];
+    const season = anime.seasons[seasonIdx];
+    activeSeason = seasonIdx;
     hideError();
 
-    epList.innerHTML = `
-      <div style="padding:32px;text-align:center;">
-        <div class="spinner" style="margin:0 auto 12px;"></div>
-        <p style="font-size:.8rem;color:var(--muted);">Lade…</p>
-      </div>`;
-    epCount.textContent = '–';
-    metaSeries.textContent = s.label;
+    epListEl.innerHTML = `<div style="padding:28px;text-align:center;">
+      <div class="spinner" style="margin:0 auto 10px;"></div>
+      <p style="font-size:.78rem;color:var(--muted);">Lade…</p></div>`;
+    epCountEl.textContent = '–';
+    metaAnime.textContent = anime.label + (anime.seasons.length > 1 ? ' – ' + season.label : '');
     metaEp.textContent = '';
+    playerFrame.style.display = 'none';
+    placeholder.style.display = 'flex';
+    placeholder.innerHTML = `<div class="play-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div><p>Episode auswählen</p>`;
 
     try {
-      if (!nonce) nonce = await fetchNonce(s.slug);
-      const data = await proxyPost(AJAX_URL,
-        `action=get_episode_data&title=${encodeURIComponent(s.title)}&server=${serverSelect.value}&nonce=${nonce}`
-      );
-      if (!data.success) throw new Error(data.data || 'Fehler');
-
-      episodes = data.data.episodes;
-      renderEpisodeList(seriesIdx);
-
-      if (resumeEp) {
-        selectEpisode(resumeEp, true);
+      if (anime.type === 'ajax') {
+        await loadAjaxEpisodes(season, resumeEp);
+      } else {
+        loadLinkEpisodes(season, resumeEp);
       }
     } catch (e) {
-      showError(`Episoden konnten nicht geladen werden: ${e.message}`);
-      epList.innerHTML = `<p style="padding:16px;color:var(--muted);font-size:.82rem;">Fehler beim Laden.</p>`;
+      showError('Episoden konnten nicht geladen werden: ' + e.message);
+      epListEl.innerHTML = `<p style="padding:14px;color:var(--muted);font-size:.8rem;">Fehler beim Laden.</p>`;
     }
   }
 
-  // ── Render episodes ──────────────────────────────────────────────────────
-  function renderEpisodeList(seriesIdx) {
-    const watched = watchedEps[seriesIdx] || new Set();
-    epCount.textContent = episodes.length;
-    epList.innerHTML = episodes.map(ep => `
+  // AJAX mode (JJK)
+  async function loadAjaxEpisodes(season, resumeEp) {
+    if (!nonce) nonce = await getNonce(season.slug);
+    const data = await proxyPost(AJAX,
+      `action=get_episode_data&title=${encodeURIComponent(season.title)}&server=${serverSelect.value}&nonce=${nonce}`
+    );
+    if (!data.success) throw new Error(data.data || 'Fehler');
+    episodes = data.data.episodes;
+    renderEpisodeList();
+    if (resumeEp) selectEpisode(resumeEp, true);
+  }
+
+  // Link mode (One Piece) — episode list is static
+  function loadLinkEpisodes(season, resumeEp) {
+    episodes = Array.from({ length: season.episodeCount }, (_, i) => ({
+      number: i + 1,
+      title: `Episode ${i + 1}`,
+    }));
+    renderEpisodeList();
+    if (resumeEp) selectEpisode(resumeEp, true);
+  }
+
+  // ── Render list ───────────────────────────────────────────────────────────
+  function renderEpisodeList() {
+    const k       = progressKey();
+    const watched = watchedEps[k] || new Set();
+    epCountEl.textContent = episodes.length;
+    epListEl.innerHTML = episodes.map(ep => `
       <div class="ep-item ${watched.has(ep.number) ? 'watched' : ''}" data-ep="${ep.number}">
         <span class="ep-num">${String(ep.number).padStart(2, '0')}</span>
         <span class="ep-title">${ep.title}</span>
       </div>
     `).join('');
-
-    epList.querySelectorAll('.ep-item').forEach(el => {
+    epListEl.querySelectorAll('.ep-item').forEach(el => {
       el.addEventListener('click', () => selectEpisode(parseInt(el.dataset.ep), false));
     });
   }
 
-  // ── Select & play episode ────────────────────────────────────────────────
+  // ── Select episode ────────────────────────────────────────────────────────
   async function selectEpisode(epNum, isResume = false) {
-    const s = SERIES[activeSeries];
-    hideError();
+    const anime  = ANIME_LIST[activeAnime];
+    const season = anime.seasons[activeSeason];
     activeEpisode = epNum;
     saveProgress();
+    hideError();
 
-    // Highlight
-    epList.querySelectorAll('.ep-item').forEach(el => {
-      el.classList.toggle('active', parseInt(el.dataset.ep) === epNum);
-    });
-    const activeEl = epList.querySelector('.ep-item.active');
-    if (activeEl) activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    epListEl.querySelectorAll('.ep-item').forEach(el =>
+      el.classList.toggle('active', parseInt(el.dataset.ep) === epNum)
+    );
+    epListEl.querySelector('.ep-item.active')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
-    // Player loading state
     playerFrame.style.display = 'none';
     placeholder.style.display = 'flex';
     placeholder.innerHTML = `<div class="spinner"></div><p>Lade Folge ${epNum}…</p>`;
@@ -497,46 +533,50 @@
     resumeBadge.style.display = isResume ? 'inline' : 'none';
 
     try {
-      const data = await proxyPost(AJAX_URL,
-        `action=get_episode_data&title=${encodeURIComponent(s.title)}&server=${serverSelect.value}&episode=${epNum}&nonce=${nonce}`
-      );
-      if (!data.success || !data.data.url) throw new Error(data.data || 'Keine URL');
+      let embedUrl;
+      if (anime.type === 'ajax') {
+        const data = await proxyPost(AJAX,
+          `action=get_episode_data&title=${encodeURIComponent(season.title)}&server=${serverSelect.value}&episode=${epNum}&nonce=${nonce}`
+        );
+        if (!data.success || !data.data.url) throw new Error(data.data || 'Keine URL');
+        embedUrl = data.data.url;
+        metaEp.textContent = `Folge ${epNum} / ${data.data.total || episodes.length}`;
+      } else {
+        // Link mode: fetch the ?link=N page, extract iframe src
+        const linkN = season.linkOffset + epNum;
+        const html  = await proxyGet(`https://www.animetoast.cc/${season.slug}/?link=${linkN}`);
+        const m     = html.match(/<iframe[^>]+src="(https?:\/\/[^"]+)"/i);
+        if (!m) throw new Error('Kein Embed gefunden');
+        embedUrl = m[1];
+        metaEp.textContent = `Folge ${epNum} / ${season.episodeCount}`;
+      }
 
-      playerFrame.src = data.data.url;
+      playerFrame.src = embedUrl;
       playerFrame.style.display = 'block';
       placeholder.style.display = 'none';
-      metaEp.textContent = `Folge ${epNum} / ${data.data.total || episodes.length}`;
 
-      // Mark as watched after a moment
-      setTimeout(() => markWatched(activeSeries, epNum), 10000);
-
+      setTimeout(() => markWatched(epNum), 10000);
     } catch (e) {
       showError(`Folge ${epNum} konnte nicht geladen werden: ${e.message}`);
-      placeholder.innerHTML = `
-        <div class="play-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-        </svg></div>
-        <p>Episode nicht verfügbar</p>`;
+      placeholder.innerHTML = `<div class="play-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+      </svg></div><p>Episode nicht verfügbar</p>`;
       placeholder.style.display = 'flex';
     }
   }
 
-  // ── Server change ────────────────────────────────────────────────────────
+  // ── Server change (AJAX mode only) ────────────────────────────────────────
   serverSelect.addEventListener('change', () => {
     nonce = null;
     const prev = activeEpisode;
-    playerFrame.style.display = 'none';
-    placeholder.style.display = 'flex';
-    placeholder.innerHTML = `<div class="spinner"></div><p>Wechsle Server…</p>`;
-    loadEpisodes(activeSeries).then(() => {
-      if (prev) selectEpisode(prev);
-    });
+    loadSeason(activeSeason).then(() => { if (prev) selectEpisode(prev); });
   });
 
-  // ── Init ─────────────────────────────────────────────────────────────────
+  // ── Init ──────────────────────────────────────────────────────────────────
   const savedEp = loadProgress();
+  buildAnimeTabs();
   buildSeasonTabs();
-  loadEpisodes(activeSeries, savedEp);
+  loadSeason(activeSeason, savedEp);
 </script>
 </body>
 </html>
