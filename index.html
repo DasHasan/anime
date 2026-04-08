@@ -290,9 +290,8 @@
 
 <script>
   // ── Config ───────────────────────────────────────────────────────────────
-  const CORS   = 'https://cors.eu.org/';
-  const AJAX   = 'https://www.animetoast.cc/wp-admin/admin-ajax.php';
-  const STORE  = 'anime_progress'; // localStorage key
+  const CORS  = 'https://cors.eu.org/';
+  const STORE = 'anime_progress'; // localStorage key
 
   // type:'ajax'  → uses WP admin-ajax get_episode_data (JJK)
   // type:'link'  → fetches ?link=N page and extracts iframe src (One Piece)
@@ -330,7 +329,6 @@
   let activeSeason  = 0;
   let activeEpisode = null;
   let episodes      = [];
-  let nonce         = null;
   let watchedEps    = {}; // "animeId:seasonIdx" → Set of ep numbers
 
   // ── Persistence ──────────────────────────────────────────────────────────
@@ -384,19 +382,7 @@
   const hideError = ()  => { errorBar.style.display = 'none'; };
 
   // ── Fetch helpers ─────────────────────────────────────────────────────────
-  const proxyGet  = url  => fetch(CORS + url).then(r => r.text());
-  const proxyPost = (url, body) => fetch(CORS + url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  }).then(r => r.json());
-
-  async function getNonce(slug) {
-    const html = await proxyGet(`https://www.animetoast.cc/${slug}/`);
-    const m = html.match(/"nonce":"([^"]+)"/);
-    if (!m) throw new Error('Nonce nicht gefunden');
-    return m[1];
-  }
+  const proxyGet = url => fetch(CORS + url).then(r => r.text());
 
   // ── Build tabs ────────────────────────────────────────────────────────────
   function buildAnimeTabs() {
@@ -409,7 +395,6 @@
         if (idx === activeAnime) return;
         activeAnime  = idx;
         activeSeason = 0;
-        nonce        = null;
         activeEpisode = null;
         saveProgress();
         animeTabsEl.querySelectorAll('.anime-tab').forEach(b => b.classList.remove('active'));
@@ -439,7 +424,6 @@
         const idx = parseInt(btn.dataset.idx);
         if (idx === activeSeason) return;
         activeSeason = idx;
-        nonce = null;
         activeEpisode = null;
         saveProgress();
         seasonTabsEl.querySelectorAll('.season-tab').forEach(b => b.classList.remove('active'));
@@ -481,14 +465,13 @@
     }
   }
 
-  // AJAX mode (JJK)
+  // AJAX mode (JJK/Frieren S1) — read pre-built text file, one URL per line
   async function loadAjaxEpisodes(season, resumeEp) {
-    if (!nonce) nonce = await getNonce(season.slug);
-    const data = await proxyPost(AJAX,
-      `action=get_episode_data&title=${encodeURIComponent(season.title)}&server=${serverSelect.value}&nonce=${nonce}`
-    );
-    if (!data.success) throw new Error(data.data || 'Fehler');
-    episodes = data.data.episodes;
+    const fileUrl = `https://www.animetoast.cc/wp-content/uploads/iframe-data/${encodeURIComponent(season.title)}-server${serverSelect.value}.txt`;
+    const text = await proxyGet(fileUrl);
+    const urls = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    if (!urls.length) throw new Error('Keine Episoden gefunden');
+    episodes = urls.map((url, i) => ({ number: i + 1, title: `Episode ${i + 1}`, url }));
     renderEpisodeList();
     if (resumeEp) selectEpisode(resumeEp, true);
   }
@@ -541,12 +524,10 @@
     try {
       let embedUrl;
       if (season.type === 'ajax') {
-        const data = await proxyPost(AJAX,
-          `action=get_episode_data&title=${encodeURIComponent(season.title)}&server=${serverSelect.value}&episode=${epNum}&nonce=${nonce}`
-        );
-        if (!data.success || !data.data.url) throw new Error(data.data || 'Keine URL');
-        embedUrl = data.data.url;
-        metaEp.textContent = `Folge ${epNum} / ${data.data.total || episodes.length}`;
+        const ep = episodes.find(e => e.number === epNum);
+        if (!ep?.url) throw new Error('Keine URL');
+        embedUrl = ep.url;
+        metaEp.textContent = `Folge ${epNum} / ${episodes.length}`;
       } else {
         // Link mode: fetch ?link=N page, extract embed URL
         const linkN = season.linkOffset + epNum;
@@ -580,7 +561,6 @@
 
   // ── Server change (AJAX mode only) ────────────────────────────────────────
   serverSelect.addEventListener('change', () => {
-    nonce = null;
     const prev = activeEpisode;
     loadSeason(activeSeason).then(() => { if (prev) selectEpisode(prev); });
   });
