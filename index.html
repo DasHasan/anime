@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Anime</title>
-  <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1c1b1f" />
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <style>
     /* ── MD3 dark color tokens ── */
     :root {
@@ -108,15 +106,16 @@
     }
 
     /* ── Player ── */
-    .player-aspect {
-      position: relative;
+    .player-wrap {
       width: 100%;
-      padding-top: 56.25%;
+      height: 56vw;
+      min-height: 200px;
+      max-height: 480px;
       background: #000;
+      position: relative;
     }
-    .player-aspect > * {
-      position: absolute;
-      inset: 0;
+    .player-wrap iframe,
+    .player-wrap .player-placeholder {
       width: 100%;
       height: 100%;
       border: none;
@@ -431,7 +430,7 @@
 <div class="scroll-area" id="scroll-area">
 
   <!-- Player -->
-  <div class="player-aspect">
+  <div class="player-wrap">
     <div class="player-placeholder" id="placeholder">
       <div class="play-circle">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" style="margin-left:4px">
@@ -822,7 +821,6 @@
   buildSeasonChips();
   loadSeason(activeSeason, savedEp);
 
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
 </html>
