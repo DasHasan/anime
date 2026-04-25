@@ -303,46 +303,60 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Bottom nav (MD3) ── */
-    .bottom-nav {
-      flex-shrink: 0;
-      height: calc(80px + env(safe-area-inset-bottom));
-      padding-bottom: env(safe-area-inset-bottom);
-      background: var(--surf-c);
-      border-top: 1px solid rgba(255,255,255,.05);
-      display: flex;
-      align-items: stretch;
-    }
-    .nav-item {
+    /* ── Main layout ── */
+    .main-layout {
       flex: 1;
       display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 88px;
+      flex-shrink: 0;
+      background: var(--surf-c);
+      border-right: 1px solid rgba(255,255,255,.05);
+      display: flex;
       flex-direction: column;
+      padding: 8px 0;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .sidebar::-webkit-scrollbar { display: none; }
+    .sidebar-item {
+      display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      text-align: center;
+      min-height: 64px;
+      padding: 10px 8px;
       cursor: pointer;
       background: none;
       border: none;
-      color: var(--on-surf-var);
       font-family: inherit;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .nav-pill {
-      width: 64px; height: 32px;
-      border-radius: 16px;
-      background: transparent;
-      display: flex; align-items: center; justify-content: center;
-      transition: background .2s;
-    }
-    .nav-item.active .nav-pill { background: var(--primary-c); }
-    .nav-item.active { color: var(--on-primary-c); }
-    .nav-label {
-      font-size: .6875rem;
+      font-size: .75rem;
       font-weight: 500;
-      letter-spacing: .5px;
+      letter-spacing: .3px;
+      color: var(--on-surf-var);
+      line-height: 1.3;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+      transition: color .15s;
     }
-    .nav-item.active .nav-label { font-weight: 700; }
+    .sidebar-item::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 8px; bottom: 8px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: transparent;
+      transition: background .15s;
+    }
+    .sidebar-item.active {
+      color: var(--primary);
+      background: rgba(208,188,255,.06);
+    }
+    .sidebar-item.active::before { background: var(--primary); }
 
     /* ── Server bottom sheet ── */
     .sheet-scrim {
@@ -427,7 +441,9 @@
 <!-- Error bar -->
 <div class="error-bar" id="error-bar"></div>
 
-<!-- Scrollable content -->
+<!-- Main layout: sidebar + content -->
+<div class="main-layout">
+<nav class="sidebar" id="sidebar"></nav>
 <div class="scroll-area" id="scroll-area">
 
   <!-- Player -->
@@ -468,9 +484,7 @@
     </div>
   </div>
 </div>
-
-<!-- Bottom Navigation -->
-<nav class="bottom-nav" id="bottom-nav"></nav>
+</div><!-- .main-layout -->
 
 <!-- Server bottom sheet -->
 <div class="sheet-scrim" id="sheet-scrim">
@@ -596,7 +610,7 @@
   const metaEp       = document.getElementById('meta-ep');
   const resumeBadge  = document.getElementById('resume-badge');
   const errorBar     = document.getElementById('error-bar');
-  const bottomNav    = document.getElementById('bottom-nav');
+  const sidebarEl    = document.getElementById('sidebar');
   const seasonChips  = document.getElementById('season-chips');
 
   playerVideo.addEventListener('play',  acquireWakeLock);
@@ -635,15 +649,14 @@
   serverBtn.addEventListener('click', openServerSheet);
   sheetScrim.addEventListener('click', e => { if (e.target === sheetScrim) closeServerSheet(); });
 
-  // ── Bottom nav ────────────────────────────────────────────────────────────────
-  function buildBottomNav() {
-    bottomNav.innerHTML = ANIME_LIST.map((a, i) => `
-      <button class="nav-item ${i === activeAnime ? 'active' : ''}" data-idx="${i}">
-        <div class="nav-pill">${a.icon}</div>
-        <span class="nav-label">${a.short}</span>
+  // ── Sidebar ───────────────────────────────────────────────────────────────────
+  function buildSidebar() {
+    sidebarEl.innerHTML = ANIME_LIST.map((a, i) => `
+      <button class="sidebar-item ${i === activeAnime ? 'active' : ''}" data-idx="${i}">
+        ${a.short}
       </button>
     `).join('');
-    bottomNav.querySelectorAll('.nav-item').forEach(btn => {
+    sidebarEl.querySelectorAll('.sidebar-item').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.idx);
         if (idx === activeAnime) return;
@@ -651,7 +664,7 @@
         activeSeason  = 0;
         activeEpisode = null;
         saveProgress();
-        bottomNav.querySelectorAll('.nav-item').forEach((b, i) => b.classList.toggle('active', i === idx));
+        sidebarEl.querySelectorAll('.sidebar-item').forEach((b, i) => b.classList.toggle('active', i === idx));
         buildSeasonChips();
         loadSeason(0);
       });
@@ -847,7 +860,7 @@
 
   // ── Init ──────────────────────────────────────────────────────────────────────
   const savedEp = loadProgress();
-  buildBottomNav();
+  buildSidebar();
   buildSeasonChips();
   loadSeason(activeSeason, savedEp);
 
