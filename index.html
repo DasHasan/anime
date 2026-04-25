@@ -310,53 +310,61 @@
       overflow: hidden;
     }
 
-    /* ── Sidebar ── */
-    .sidebar {
-      width: 88px;
-      flex-shrink: 0;
-      background: var(--surf-c);
-      border-right: 1px solid rgba(255,255,255,.05);
+    /* ── Navigation Drawer (MD3) ── */
+    .drawer-scrim {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 200;
+    }
+    .drawer-scrim.open { display: block; }
+    .drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: min(280px, 85vw);
+      background: var(--surf-ch);
+      z-index: 201;
       display: flex;
       flex-direction: column;
-      padding: 8px 0;
+      transform: translateX(-100%);
+      transition: transform .25s cubic-bezier(.2,0,0,1);
       overflow-y: auto;
-      scrollbar-width: none;
     }
-    .sidebar::-webkit-scrollbar { display: none; }
-    .sidebar-item {
+    .drawer-scrim.open .drawer { transform: none; }
+    .drawer-header {
+      padding: 24px 28px 8px;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--on-surf-var);
+      flex-shrink: 0;
+    }
+    .drawer-item {
       display: flex;
       align-items: center;
-      justify-content: center;
-      text-align: center;
-      min-height: 64px;
-      padding: 10px 8px;
+      height: 56px;
+      padding: 0 28px;
+      margin: 2px 12px;
+      border-radius: 28px;
       cursor: pointer;
       background: none;
       border: none;
       font-family: inherit;
-      font-size: .75rem;
+      font-size: 1rem;
       font-weight: 500;
-      letter-spacing: .3px;
+      letter-spacing: .15px;
       color: var(--on-surf-var);
-      line-height: 1.3;
-      position: relative;
+      text-align: left;
+      width: calc(100% - 24px);
       -webkit-tap-highlight-color: transparent;
-      transition: color .15s;
+      transition: background .15s, color .15s;
     }
-    .sidebar-item::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 8px; bottom: 8px;
-      width: 3px;
-      border-radius: 0 3px 3px 0;
-      background: transparent;
-      transition: background .15s;
+    .drawer-item:active { background: rgba(208,188,255,.1); }
+    .drawer-item.active {
+      background: var(--primary-c);
+      color: var(--on-primary-c);
     }
-    .sidebar-item.active {
-      color: var(--primary);
-      background: rgba(208,188,255,.06);
-    }
-    .sidebar-item.active::before { background: var(--primary); }
 
     /* ── Server bottom sheet ── */
     .sheet-scrim {
@@ -429,6 +437,11 @@
 
 <!-- Top App Bar -->
 <div class="top-bar">
+  <button class="icon-btn" id="menu-btn" aria-label="Menü">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+    </svg>
+  </button>
   <span class="top-bar-title" id="topbar-title">Anime</span>
   <button class="icon-btn" id="server-btn" style="display:none;" aria-label="Server wählen">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -441,9 +454,16 @@
 <!-- Error bar -->
 <div class="error-bar" id="error-bar"></div>
 
-<!-- Main layout: sidebar + content -->
+<!-- Navigation Drawer -->
+<div class="drawer-scrim" id="drawer-scrim">
+  <nav class="drawer" id="drawer">
+    <div class="drawer-header">Anime</div>
+    <div id="drawer-items"></div>
+  </nav>
+</div>
+
+<!-- Main layout -->
 <div class="main-layout">
-<nav class="sidebar" id="sidebar"></nav>
 <div class="scroll-area" id="scroll-area">
 
   <!-- Player -->
@@ -484,7 +504,7 @@
     </div>
   </div>
 </div>
-</div><!-- .main-layout -->
+</div>
 
 <!-- Server bottom sheet -->
 <div class="sheet-scrim" id="sheet-scrim">
@@ -610,7 +630,9 @@
   const metaEp       = document.getElementById('meta-ep');
   const resumeBadge  = document.getElementById('resume-badge');
   const errorBar     = document.getElementById('error-bar');
-  const sidebarEl    = document.getElementById('sidebar');
+  const menuBtn      = document.getElementById('menu-btn');
+  const drawerScrim  = document.getElementById('drawer-scrim');
+  const drawerItems  = document.getElementById('drawer-items');
   const seasonChips  = document.getElementById('season-chips');
 
   playerVideo.addEventListener('play',  acquireWakeLock);
@@ -649,22 +671,29 @@
   serverBtn.addEventListener('click', openServerSheet);
   sheetScrim.addEventListener('click', e => { if (e.target === sheetScrim) closeServerSheet(); });
 
-  // ── Sidebar ───────────────────────────────────────────────────────────────────
-  function buildSidebar() {
-    sidebarEl.innerHTML = ANIME_LIST.map((a, i) => `
-      <button class="sidebar-item ${i === activeAnime ? 'active' : ''}" data-idx="${i}">
-        ${a.short}
+  // ── Drawer ────────────────────────────────────────────────────────────────────
+  const openDrawer  = () => drawerScrim.classList.add('open');
+  const closeDrawer = () => drawerScrim.classList.remove('open');
+
+  menuBtn.addEventListener('click', openDrawer);
+  drawerScrim.addEventListener('click', e => { if (!e.target.closest('.drawer') || e.target === drawerScrim) closeDrawer(); });
+
+  function buildDrawer() {
+    drawerItems.innerHTML = ANIME_LIST.map((a, i) => `
+      <button class="drawer-item ${i === activeAnime ? 'active' : ''}" data-idx="${i}">
+        ${a.label}
       </button>
     `).join('');
-    sidebarEl.querySelectorAll('.sidebar-item').forEach(btn => {
+    drawerItems.querySelectorAll('.drawer-item').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.idx);
+        closeDrawer();
         if (idx === activeAnime) return;
         activeAnime   = idx;
         activeSeason  = 0;
         activeEpisode = null;
         saveProgress();
-        sidebarEl.querySelectorAll('.sidebar-item').forEach((b, i) => b.classList.toggle('active', i === idx));
+        drawerItems.querySelectorAll('.drawer-item').forEach((b, i) => b.classList.toggle('active', i === idx));
         buildSeasonChips();
         loadSeason(0);
       });
@@ -860,7 +889,7 @@
 
   // ── Init ──────────────────────────────────────────────────────────────────────
   const savedEp = loadProgress();
-  buildSidebar();
+  buildDrawer();
   buildSeasonChips();
   loadSeason(activeSeason, savedEp);
 
