@@ -115,6 +115,7 @@
       position: relative;
     }
     .player-wrap iframe,
+    .player-wrap video,
     .player-wrap .player-placeholder {
       width: 100%;
       height: 100%;
@@ -440,6 +441,7 @@
       <p>Episode auswählen</p>
     </div>
     <iframe id="player-frame" allowfullscreen allow="autoplay; fullscreen" style="display:none;"></iframe>
+    <video id="player-video" controls playsinline style="display:none; background:#000;"></video>
   </div>
 
   <!-- Meta bar -->
@@ -559,8 +561,10 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) releaseWakeLock();
-    else if (activeEpisode && playerFrame.style.display !== 'none') acquireWakeLock();
+    else if (activeEpisode && (playerFrame.style.display !== 'none' || playerVideo.style.display !== 'none')) acquireWakeLock();
   });
+  playerVideo.addEventListener('play',  acquireWakeLock);
+  playerVideo.addEventListener('pause', releaseWakeLock);
 
   // ── Media Session ─────────────────────────────────────────────────────────────
   function updateMediaSession(epNum) {
@@ -588,6 +592,7 @@
   const epListEl     = document.getElementById('ep-list');
   const epCountEl    = document.getElementById('ep-count');
   const playerFrame  = document.getElementById('player-frame');
+  const playerVideo  = document.getElementById('player-video');
   const placeholder  = document.getElementById('placeholder');
   const metaAnime    = document.getElementById('meta-anime');
   const metaEp       = document.getElementById('meta-ep');
@@ -770,6 +775,8 @@
     epListEl.querySelector('.ep-item.active')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
     playerFrame.style.display  = 'none';
+    playerVideo.style.display  = 'none';
+    playerVideo.src            = '';
     placeholder.style.display  = 'flex';
     placeholder.innerHTML = `<div class="spinner"></div><p style="font-size:.875rem;">Lade Folge ${epNum}…</p>`;
     metaEp.textContent = `Folge ${epNum}`;
@@ -784,11 +791,26 @@
         embedUrl = ep.url;
         metaEp.textContent = `Folge ${epNum} / ${episodes.length}`;
       } else if (season.type === 'tube') {
-        const html   = await proxyGet(`https://onepiece.tube/anime/folge/${epNum}`);
-        const iframe = html.match(/src="(https:\/\/hubu\.cloud\/[^"]+)"/i);
-        if (!iframe) throw new Error('Kein Embed gefunden');
-        embedUrl = iframe[1];
-        metaEp.textContent = `Folge ${epNum} / ${season.episodeCount}`;
+        const html1  = await proxyGet(`https://onepiece.tube/anime/folge/${epNum}`);
+        const embedM = html1.match(/src="(https:\/\/hubu\.cloud\/[^"]+)"/i);
+        if (!embedM) throw new Error('Kein Embed gefunden');
+        const html2  = await proxyGet(embedM[1]);
+        const mp4M   = html2.match(/<source src="([^"]+\.mp4[^"]*)"/i);
+        if (!mp4M) throw new Error('Keine Video-URL');
+        metaEp.textContent       = `Folge ${epNum} / ${season.episodeCount}`;
+        playerVideo.src          = mp4M[1];
+        playerVideo.style.display = 'block';
+        placeholder.style.display = 'none';
+        playerVideo.play().catch(() => {});
+        acquireWakeLock();
+        updateMediaSession(epNum);
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.setActionHandler('play',   () => playerVideo.play());
+          navigator.mediaSession.setActionHandler('pause',  () => playerVideo.pause());
+          navigator.mediaSession.setActionHandler('seekto', d  => { playerVideo.currentTime = d.seekTime; });
+        }
+        setTimeout(() => markWatched(epNum), 10000);
+        return;
       } else {
         const linkN  = season.linkOffset + epNum;
         const html   = await proxyGet(`https://www.animetoast.cc/${season.slug}/?link=${linkN}`);
