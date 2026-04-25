@@ -32,17 +32,19 @@
       background: var(--bg);
       color: var(--on-surface);
       font-family: 'Roboto', system-ui, -apple-system, sans-serif;
-      overscroll-behavior: none;
     }
 
     body {
       display: flex;
       flex-direction: column;
-      height: 100dvh;
+      min-height: 100dvh;
     }
 
     /* ── Top App Bar ── */
     .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
       flex-shrink: 0;
       height: 64px;
       background: var(--surf-c);
@@ -99,10 +101,7 @@
     /* ── Scroll area ── */
     .scroll-area {
       flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain;
+      min-width: 0;
     }
 
     /* ── Player ── */
@@ -307,7 +306,6 @@
     .main-layout {
       flex: 1;
       display: flex;
-      overflow: hidden;
     }
 
     /* ── Navigation Drawer (MD3) ── */
@@ -824,7 +822,7 @@
     placeholder.innerHTML = `<div class="spinner"></div><p style="font-size:.875rem;">Lade Folge ${epNum}…</p>`;
     metaEp.textContent = `Folge ${epNum}`;
     resumeBadge.style.display = isResume ? 'inline' : 'none';
-    scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     try {
       let embedUrl;
