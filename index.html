@@ -505,7 +505,7 @@
       id: 'op', label: 'One Piece', short: 'One Piece',
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17 7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h10c2.76 0 5-2.24 5-5s-2.24-5-5-5zM7 15c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/></svg>`,
       seasons: [
-        { label: 'Ger Sub', type: 'link', slug: 'one-piece-gyojin-tou-hen-ger-sub', linkOffset: -1, episodeCount: 17 },
+        { label: 'Ger Sub', type: 'tube', episodeCount: 1159 },
       ],
     },
   ];
@@ -711,7 +711,7 @@
       if (season.type === 'ajax') {
         await loadAjaxEpisodes(season, resumeEp);
       } else {
-        loadLinkEpisodes(season, resumeEp);
+        loadLinkEpisodes(season, resumeEp); // covers both 'link' and 'tube'
       }
     } catch (e) {
       showError('Episoden konnten nicht geladen werden: ' + e.message);
@@ -782,6 +782,12 @@
         if (!ep?.url) throw new Error('Keine URL');
         embedUrl = ep.url;
         metaEp.textContent = `Folge ${epNum} / ${episodes.length}`;
+      } else if (season.type === 'tube') {
+        const html   = await proxyGet(`https://onepiece.tube/anime/folge/${epNum}`);
+        const iframe = html.match(/src="(https:\/\/hubu\.cloud\/[^"]+)"/i);
+        if (!iframe) throw new Error('Kein Embed gefunden');
+        embedUrl = iframe[1];
+        metaEp.textContent = `Folge ${epNum} / ${season.episodeCount}`;
       } else {
         const linkN  = season.linkOffset + epNum;
         const html   = await proxyGet(`https://www.animetoast.cc/${season.slug}/?link=${linkN}`);
