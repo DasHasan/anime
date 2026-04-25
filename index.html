@@ -561,10 +561,8 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) releaseWakeLock();
-    else if (activeEpisode && (playerFrame.style.display !== 'none' || playerVideo.style.display !== 'none')) acquireWakeLock();
+    else if (activeEpisode && (playerFrame?.style.display !== 'none' || playerVideo?.style.display !== 'none')) acquireWakeLock();
   });
-  playerVideo.addEventListener('play',  acquireWakeLock);
-  playerVideo.addEventListener('pause', releaseWakeLock);
 
   // ── Media Session ─────────────────────────────────────────────────────────────
   function updateMediaSession(epNum) {
@@ -600,6 +598,9 @@
   const errorBar     = document.getElementById('error-bar');
   const bottomNav    = document.getElementById('bottom-nav');
   const seasonChips  = document.getElementById('season-chips');
+
+  playerVideo.addEventListener('play',  acquireWakeLock);
+  playerVideo.addEventListener('pause', releaseWakeLock);
 
   const showError = msg => { errorBar.textContent = msg; errorBar.style.display = 'block'; };
   const hideError = ()  => { errorBar.style.display = 'none'; };
