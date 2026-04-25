@@ -741,7 +741,8 @@
   function renderEpisodeList() {
     const watched = watchedEps[progressKey()] || new Set();
     epCountEl.textContent = episodes.length;
-    epListEl.innerHTML = episodes.map((ep, i) => `
+    const ordered = [...episodes].reverse();
+    epListEl.innerHTML = ordered.map((ep, i) => `
       <div class="ep-item ${watched.has(ep.number) ? 'watched' : ''}" data-ep="${ep.number}">
         <span class="ep-num">${String(ep.number).padStart(2, '0')}</span>
         <span class="ep-title">${ep.title}</span>
@@ -749,7 +750,7 @@
           <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
         </svg>
       </div>
-      ${i < episodes.length - 1 ? '<div class="ep-divider"></div>' : ''}
+      ${i < ordered.length - 1 ? '<div class="ep-divider"></div>' : ''}
     `).join('');
     epListEl.querySelectorAll('.ep-item').forEach(el => {
       el.addEventListener('click', () => selectEpisode(parseInt(el.dataset.ep)));
