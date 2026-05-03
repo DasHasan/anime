@@ -1022,6 +1022,10 @@
 
   // ── Luluvid m3u8 extraction ───────────────────────────────────────────────────
   function extractLuluM3u8(html) {
+    // Plain-text jwplayer sources (current luluvid format)
+    const plain = html.match(/sources:\s*\[{file:"(https?:\/\/[^"]+\.m3u8[^"]*)"/);
+    if (plain) return plain[1];
+    // Legacy eval-packed format
     const idx = html.indexOf("eval(function(p,a,c,k,e,d){while");
     if (idx < 0) return null;
     const block = html.slice(idx, idx + 80000);
@@ -1338,7 +1342,7 @@
         const embedPage = `${luluUri.origin}/e/${luluUri.pathname.slice(1)}`;
         const luluHtml = await proxyGet(embedPage);
         const m3u8Url = extractLuluM3u8(luluHtml);
-        if (!m3u8Url) throw new Error('Keine Video-URL (eval unpack fehlgeschlagen)');
+        if (!m3u8Url) throw new Error('Keine Video-URL gefunden');
         metaEp.textContent        = `Folge ${epNum} / ${episodes.length}`;
         playM3u8(m3u8Url);
         playerVideo.style.display = 'block';
