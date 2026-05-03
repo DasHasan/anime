@@ -297,7 +297,7 @@
     /* ── Tap zones (double-tap seek) ── */
     .tap-zone {
       position: absolute;
-      top: 0; bottom: 0;
+      top: 0; bottom: 20%;
       width: 35%;
       z-index: 2;
       display: none;
@@ -529,7 +529,7 @@
 <div class="scroll-area" id="scroll-area">
 
   <!-- Player -->
-  <div class="player-wrap">
+  <div class="player-wrap" id="player-wrap">
     <div class="player-placeholder" id="placeholder">
       <div class="play-circle">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" style="margin-left:4px">
@@ -715,6 +715,7 @@
   const drawerItems  = document.getElementById('drawer-items');
   const seasonChips  = document.getElementById('season-chips');
 
+  const playerWrap = document.getElementById('player-wrap');
   const tapLeft    = document.getElementById('tap-left');
   const tapRight   = document.getElementById('tap-right');
   const seekFbLeft = document.getElementById('seek-fb-left');
@@ -723,7 +724,8 @@
 
   // ── Double-tap seek ───────────────────────────────────────────────────────────
   let lastTap = { time: 0, side: null };
-  let seekFbTimer = null;
+  let seekFbTimer  = null;
+  let controlsTimer = null;
 
   function showSeekFb(side) {
     const el = side === 'left' ? seekFbLeft : seekFbRight;
@@ -753,14 +755,37 @@
   tapRight.addEventListener('click', () => onTapZone('right'));
 
   // ── Player overlays (next ep btn + tap zones visibility) ──────────────────────
+  // For native video: button auto-hides like native controls (via showVideoControls).
+  // For iframe: button is always visible (no native controls to conflict with).
   function updatePlayerOverlays() {
-    const isVideo   = playerVideo.style.display !== 'none';
-    const isPlaying = isVideo || playerFrame.style.display !== 'none';
-    const hasNext   = activeEpisode != null && activeEpisode < episodes.length;
+    const isVideo = playerVideo.style.display !== 'none';
+    const isFrame = playerFrame.style.display !== 'none';
+    const hasNext = activeEpisode != null && activeEpisode < episodes.length;
     tapLeft.classList.toggle('active', isVideo);
     tapRight.classList.toggle('active', isVideo);
-    nextEpBtn.classList.toggle('visible', isPlaying && hasNext);
+    if (!hasNext || (!isVideo && !isFrame)) {
+      nextEpBtn.classList.remove('visible');
+      clearTimeout(controlsTimer);
+    } else if (isFrame) {
+      nextEpBtn.classList.add('visible');
+    }
+    // For native video, visibility is driven by showVideoControls / hide timer
   }
+
+  // Show next-ep button and (re)start the auto-hide timer, mirroring native controls.
+  function showVideoControls() {
+    const hasNext = activeEpisode != null && activeEpisode < episodes.length;
+    if (playerVideo.style.display === 'none' || !hasNext) return;
+    nextEpBtn.classList.add('visible');
+    clearTimeout(controlsTimer);
+    if (!playerVideo.paused && !playerVideo.ended) {
+      controlsTimer = setTimeout(() => nextEpBtn.classList.remove('visible'), 3000);
+    }
+  }
+
+  // Any interaction on the player shows the button (mirrors native controls behaviour)
+  playerWrap.addEventListener('touchstart', showVideoControls, { passive: true });
+  playerWrap.addEventListener('mousemove',  showVideoControls);
 
   nextEpBtn.addEventListener('click', () => {
     if (activeEpisode != null && activeEpisode < episodes.length) selectEpisode(activeEpisode + 1);
@@ -770,6 +795,17 @@
   playerVideo.addEventListener('pause', releaseWakeLock);
   playerVideo.addEventListener('ended', () => {
     if (activeEpisode && activeEpisode < episodes.length) selectEpisode(activeEpisode + 1);
+  });
+
+  // Keep next-ep button in sync with native controls show/hide
+  playerVideo.addEventListener('play', () => {
+    clearTimeout(controlsTimer);
+    controlsTimer = setTimeout(() => nextEpBtn.classList.remove('visible'), 3000);
+  });
+  playerVideo.addEventListener('pause', () => {
+    clearTimeout(controlsTimer);
+    const hasNext = activeEpisode != null && activeEpisode < episodes.length;
+    if (hasNext) nextEpBtn.classList.add('visible');
   });
 
   const showError = msg => { errorBar.textContent = msg; errorBar.style.display = 'block'; };
