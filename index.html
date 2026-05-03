@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Anime</title>
   <meta name="theme-color" content="#1c1b1f" />
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
   <style>
     /* ── MD3 dark color tokens ── */
     :root {
@@ -515,8 +516,10 @@
 
 <script>
   // ── Config ────────────────────────────────────────────────────────────────────
-  const CORS  = 'https://cors.eu.org/';
-  const STORE = 'anime_progress';
+  const CORS         = 'https://anime-cors-proxy.hasan-celik1501.workers.dev/';
+  const PROXY_TOKEN  = '88F6lTnF5pCaR3SDh3D9ctyEnyW7kDKV';
+  const PROXY_HEADS  = { 'X-Proxy-Token': PROXY_TOKEN };
+  const STORE        = 'anime_progress';
 
   const ANIME_LIST = [
     {
@@ -530,7 +533,12 @@
       id: 'jjk', label: 'Jujutsu Kaisen', short: 'JJK',
       icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg>`,
       seasons: [
-        { label: 'Ger Dub', type: 'animebase', slug: 'jujutsu-kaisen' },
+        { label: 'S1 Sub', type: 'animebase', slug: 'jujutsu-kaisen', abSeason: '1', dubsub: 0 },
+        { label: 'S1 Dub', type: 'animebase', slug: 'jujutsu-kaisen', abSeason: '1', dubsub: 1 },
+        { label: 'S2 Sub', type: 'animebase', slug: 'jujutsu-kaisen', abSeason: '2', dubsub: 0 },
+        { label: 'S2 Dub', type: 'animebase', slug: 'jujutsu-kaisen', abSeason: '2', dubsub: 1 },
+        { label: 'S3 Sub', type: 'animebase', slug: 'jujutsu-kaisen', abSeason: '3', dubsub: 0 },
+        { label: 'S3 Dub', type: 'animebase', slug: 'jujutsu-kaisen', abSeason: '3', dubsub: 1 },
       ],
     },
     {
@@ -551,6 +559,7 @@
   let episodes      = [];
   let watchedEps    = {};
   let wakeLock      = null;
+  let hlsInstance   = null;
 
   // ── Persistence ───────────────────────────────────────────────────────────────
   const progressKey = () => `${ANIME_LIST[activeAnime].id}:${activeSeason}`;
@@ -639,7 +648,57 @@
   const hideError = ()  => { errorBar.style.display = 'none'; };
 
   // ── Fetch ─────────────────────────────────────────────────────────────────────
-  const proxyGet = url => fetch(CORS + url).then(r => r.text());
+  const proxyGet = url => fetch(CORS + url, { headers: PROXY_HEADS }).then(r => r.text());
+
+  // ── Luluvid m3u8 extraction ───────────────────────────────────────────────────
+  function extractLuluM3u8(html) {
+    const idx = html.indexOf("eval(function(p,a,c,k,e,d){while");
+    if (idx < 0) return null;
+    const block = html.slice(idx, idx + 80000);
+    const kwEnd = block.lastIndexOf("'.split('|')))");
+    if (kwEnd < 0) return null;
+    const kwStart = block.slice(0, kwEnd).lastIndexOf(",'") + 2;
+    const keywords = block.slice(kwStart, kwEnd).split('|');
+    const fnEnd = block.indexOf("}(", block.indexOf("(function(p,a,c,k,e,d){"));
+    const afterFn = block.slice(fnEnd + 2);
+    const ps = afterFn.indexOf("'");
+    let pe = ps + 1;
+    while (true) { pe = afterFn.indexOf("'", pe); if (afterFn[pe - 1] !== '\\') break; pe++; }
+    const packed = afterFn.slice(ps + 1, pe);
+    const unpacked = packed.replace(/\b([0-9a-z]+)\b/g, m => {
+      const n = parseInt(m, 36);
+      return (n < keywords.length && keywords[n]) ? keywords[n] : m;
+    });
+    const m = unpacked.match(/file:"(https?:\/\/[^"]+\.m3u8[^"]*)"/);
+    return m ? m[1] : null;
+  }
+
+  function destroyHls() {
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+  }
+
+  function playM3u8(m3u8Url) {
+    destroyHls();
+    playerVideo.src = '';
+    if (Hls.isSupported()) {
+      const ProxiedLoader = class extends Hls.DefaultConfig.loader {
+        load(context, config, callbacks) {
+          if (!context.url.startsWith(CORS)) context.url = CORS + context.url;
+          context.headers = { ...context.headers, ...PROXY_HEADS };
+          super.load(context, config, callbacks);
+        }
+      };
+      hlsInstance = new Hls({ loader: ProxiedLoader });
+      hlsInstance.loadSource(CORS + m3u8Url);
+      hlsInstance.attachMedia(playerVideo);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => playerVideo.play().catch(() => {}));
+    } else if (playerVideo.canPlayType('application/vnd.apple.mpegurl')) {
+      playerVideo.src = CORS + m3u8Url;
+      playerVideo.play().catch(() => {});
+    } else {
+      throw new Error('HLS nicht unterstützt');
+    }
+  }
 
   // ── Server sheet ──────────────────────────────────────────────────────────────
   function openServerSheet() {
@@ -686,6 +745,7 @@
         const idx = parseInt(btn.dataset.idx);
         closeDrawer();
         if (idx === activeAnime) return;
+        destroyHls();
         activeAnime   = idx;
         activeSeason  = 0;
         activeEpisode = null;
@@ -717,6 +777,7 @@
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.idx);
         if (idx === activeSeason) return;
+        destroyHls();
         activeSeason  = idx;
         activeEpisode = null;
         saveProgress();
@@ -787,11 +848,15 @@
     const attrM = html.match(/data-page="([^"]+)"/);
     if (!attrM) throw new Error('Seite nicht lesbar');
     const json = JSON.parse(decodeHtmlEntities(attrM[1]));
-    const eps = json.props?.serie?.episodes;
+    let eps = json.props?.serie?.episodes;
     if (!eps?.length) throw new Error('Keine Episoden gefunden');
+    if (season.abSeason != null) eps = eps.filter(ep => ep.season === season.abSeason);
+    if (season.dubsub  != null) eps = eps.filter(ep => ep.dubsub  === season.dubsub);
+    eps = eps.filter(ep => ep.link1);
+    if (!eps.length) throw new Error('Keine Episoden gefunden');
     episodes = eps.map((ep, i) => ({
       number: i + 1,
-      title: ep.name || ep.title || `Episode ${i + 1}`,
+      title: ep.name || `Episode ${i + 1}`,
       luluUrl: ep.link1,
     }));
     renderEpisodeList();
@@ -838,6 +903,7 @@
     );
     epListEl.querySelector('.ep-item.active')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
+    destroyHls();
     playerFrame.style.display  = 'none';
     playerVideo.style.display  = 'none';
     playerVideo.src            = '';
@@ -879,8 +945,23 @@
         const ep = episodes.find(e => e.number === epNum);
         if (!ep?.luluUrl) throw new Error('Keine Stream-URL');
         const luluUri = new URL(ep.luluUrl);
-        embedUrl = `${luluUri.origin}/e/${luluUri.pathname.slice(1)}`;
+        const embedPage = `${luluUri.origin}/e/${luluUri.pathname.slice(1)}`;
+        const luluHtml = await proxyGet(embedPage);
+        const m3u8Url = extractLuluM3u8(luluHtml);
+        if (!m3u8Url) throw new Error('Keine Video-URL (eval unpack fehlgeschlagen)');
         metaEp.textContent = `Folge ${epNum} / ${episodes.length}`;
+        playM3u8(m3u8Url);
+        playerVideo.style.display = 'block';
+        placeholder.style.display = 'none';
+        acquireWakeLock();
+        updateMediaSession(epNum);
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.setActionHandler('play',   () => playerVideo.play());
+          navigator.mediaSession.setActionHandler('pause',  () => playerVideo.pause());
+          navigator.mediaSession.setActionHandler('seekto', d  => { playerVideo.currentTime = d.seekTime; });
+        }
+        setTimeout(() => markWatched(epNum), 10000);
+        return;
       } else {
         const linkN  = season.linkOffset + epNum;
         const html   = await proxyGet(`https://www.animetoast.cc/${season.slug}/?link=${linkN}`);
