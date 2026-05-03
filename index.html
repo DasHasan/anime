@@ -297,7 +297,7 @@
     /* ── Tap zones (double-tap seek) ── */
     .tap-zone {
       position: absolute;
-      top: 0; bottom: 20%;
+      top: 0; bottom: 0;
       width: 35%;
       z-index: 2;
       display: none;
@@ -332,10 +332,100 @@
     .seek-fb.right { right: 16px; }
     .seek-fb.show  { opacity: 1; }
 
-    /* ── Next episode button ── */
+    /* ── Custom video controls ── */
+    .custom-controls {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: none;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .custom-controls.active { display: flex; pointer-events: none; }
+    .cc-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top,
+        rgba(0,0,0,.88) 0%,
+        rgba(0,0,0,.18) 38%,
+        transparent     65%);
+      opacity: 0;
+      transition: opacity .2s;
+      pointer-events: none;
+    }
+    .cc-body {
+      position: relative;
+      padding: 0 6px 6px;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+    .custom-controls.visible .cc-gradient,
+    .custom-controls.visible .cc-body { opacity: 1; pointer-events: auto; }
+    .cc-seek-wrap {
+      position: relative;
+      height: 22px;
+      display: flex;
+      align-items: center;
+    }
+    .cc-track {
+      position: absolute;
+      left: 0; right: 0;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255,255,255,.25);
+      overflow: hidden;
+    }
+    .cc-buffered-bar, .cc-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 0;
+    }
+    .cc-buffered-bar { background: rgba(255,255,255,.35); }
+    .cc-fill         { background: var(--primary); }
+    .cc-thumb {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--primary);
+      pointer-events: none;
+    }
+    .cc-range {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      opacity: 0;
+      margin: 0;
+      cursor: pointer;
+      -webkit-appearance: none;
+    }
+    .cc-range::-webkit-slider-thumb { -webkit-appearance: none; }
+    .cc-range::-moz-range-thumb { opacity: 0; }
+    .cc-btn-row { display: flex; align-items: center; }
+    .cc-btn {
+      width: 36px; height: 36px;
+      background: none; border: none;
+      color: #fff; cursor: pointer; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cc-btn:active { background: rgba(255,255,255,.12); }
+    .cc-time {
+      font-size: .72rem;
+      color: rgba(255,255,255,.85);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .02em;
+      margin-left: 4px;
+      white-space: nowrap;
+    }
+    .cc-spacer { flex: 1; }
+
+    /* ── Next episode chip (iframe players only) ── */
     .next-ep-btn {
       position: absolute;
-      bottom: 52px; right: 8px;
+      bottom: 10px; right: 8px;
       z-index: 4;
       background: rgba(0,0,0,.72);
       color: #fff;
@@ -351,7 +441,6 @@
       font-family: inherit;
       letter-spacing: .25px;
       -webkit-tap-highlight-color: transparent;
-      transition: background .15s;
     }
     .next-ep-btn:active { background: rgba(0,0,0,.9); }
     .next-ep-btn.visible { display: flex; }
@@ -539,7 +628,7 @@
       <p>Episode auswählen</p>
     </div>
     <iframe id="player-frame" allowfullscreen allow="autoplay; fullscreen" style="display:none;"></iframe>
-    <video id="player-video" controls playsinline style="display:none; background:#000;"></video>
+    <video id="player-video" playsinline webkit-playsinline style="display:none; background:#000;"></video>
     <div class="tap-zone tap-left"  id="tap-left"></div>
     <div class="tap-zone tap-right" id="tap-right"></div>
     <div class="seek-fb left"  id="seek-fb-left">
@@ -549,6 +638,32 @@
     <div class="seek-fb right" id="seek-fb-right">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
       <span>10s</span>
+    </div>
+    <div class="custom-controls" id="custom-controls">
+      <div class="cc-gradient"></div>
+      <div class="cc-body">
+        <div class="cc-seek-wrap">
+          <div class="cc-track">
+            <div class="cc-buffered-bar" id="cc-buffered"></div>
+            <div class="cc-fill" id="cc-fill"></div>
+          </div>
+          <div class="cc-thumb" id="cc-thumb"></div>
+          <input type="range" class="cc-range" id="cc-range" min="0" max="1000" value="0" step="1">
+        </div>
+        <div class="cc-btn-row">
+          <button class="cc-btn" id="cc-play" aria-label="Abspielen">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <span class="cc-time" id="cc-time">0:00</span>
+          <div class="cc-spacer"></div>
+          <button class="cc-btn" id="cc-next" aria-label="Nächste Folge" style="display:none">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </button>
+          <button class="cc-btn" id="cc-fs" aria-label="Vollbild">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
+        </div>
+      </div>
     </div>
     <button class="next-ep-btn" id="next-ep-btn" aria-label="Nächste Episode">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
@@ -715,16 +830,25 @@
   const drawerItems  = document.getElementById('drawer-items');
   const seasonChips  = document.getElementById('season-chips');
 
-  const playerWrap = document.getElementById('player-wrap');
-  const tapLeft    = document.getElementById('tap-left');
-  const tapRight   = document.getElementById('tap-right');
-  const seekFbLeft = document.getElementById('seek-fb-left');
-  const seekFbRight= document.getElementById('seek-fb-right');
-  const nextEpBtn  = document.getElementById('next-ep-btn');
+  const playerWrap     = document.getElementById('player-wrap');
+  const tapLeft        = document.getElementById('tap-left');
+  const tapRight       = document.getElementById('tap-right');
+  const seekFbLeft     = document.getElementById('seek-fb-left');
+  const seekFbRight    = document.getElementById('seek-fb-right');
+  const nextEpBtn      = document.getElementById('next-ep-btn');  // iframe chip
+  const customControls = document.getElementById('custom-controls');
+  const ccPlay         = document.getElementById('cc-play');
+  const ccTime         = document.getElementById('cc-time');
+  const ccRange        = document.getElementById('cc-range');
+  const ccFill         = document.getElementById('cc-fill');
+  const ccBufferedBar  = document.getElementById('cc-buffered');
+  const ccThumb        = document.getElementById('cc-thumb');
+  const ccNext         = document.getElementById('cc-next');
+  const ccFs           = document.getElementById('cc-fs');
 
   // ── Double-tap seek ───────────────────────────────────────────────────────────
-  let lastTap = { time: 0, side: null };
-  let seekFbTimer  = null;
+  let lastTap       = { time: 0, side: null };
+  let seekFbTimer   = null;
   let controlsTimer = null;
 
   function showSeekFb(side) {
@@ -754,58 +878,121 @@
   tapLeft.addEventListener('click',  () => onTapZone('left'));
   tapRight.addEventListener('click', () => onTapZone('right'));
 
-  // ── Player overlays (next ep btn + tap zones visibility) ──────────────────────
-  // For native video: button auto-hides like native controls (via showVideoControls).
-  // For iframe: button is always visible (no native controls to conflict with).
+  // ── Custom video controls ─────────────────────────────────────────────────────
+  const PLAY_ICON  = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+  const PAUSE_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+  const FS_ENTER   = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>`;
+  const FS_EXIT    = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>`;
+
+  function fmtTime(s) {
+    if (!isFinite(s) || isNaN(s)) return '0:00';
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = Math.floor(s % 60);
+    return h > 0
+      ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+      : `${m}:${String(sec).padStart(2,'0')}`;
+  }
+
+  function updateSeekBar() {
+    const dur = playerVideo.duration;
+    const cur = playerVideo.currentTime;
+    const pct = isFinite(dur) && dur > 0 ? (cur / dur) * 100 : 0;
+    ccFill.style.width = pct + '%';
+    ccThumb.style.left = pct + '%';
+    ccRange.value = Math.round(pct * 10);
+    let buffPct = 0;
+    if (playerVideo.buffered.length && isFinite(dur) && dur > 0) {
+      buffPct = (playerVideo.buffered.end(playerVideo.buffered.length - 1) / dur) * 100;
+    }
+    ccBufferedBar.style.width = buffPct + '%';
+    ccTime.textContent = `${fmtTime(cur)} / ${isFinite(dur) ? fmtTime(dur) : '0:00'}`;
+  }
+
+  function updatePlayBtn() {
+    ccPlay.innerHTML = playerVideo.paused ? PLAY_ICON : PAUSE_ICON;
+  }
+
+  function showControls() {
+    if (!customControls.classList.contains('active')) return;
+    customControls.classList.add('visible');
+    clearTimeout(controlsTimer);
+    if (!playerVideo.paused && !playerVideo.ended) {
+      controlsTimer = setTimeout(() => customControls.classList.remove('visible'), 3000);
+    }
+  }
+
+  ccRange.addEventListener('input', () => {
+    const dur = playerVideo.duration;
+    if (!isFinite(dur)) return;
+    const frac = ccRange.value / 1000;
+    ccFill.style.width = (frac * 100) + '%';
+    ccThumb.style.left = (frac * 100) + '%';
+    ccTime.textContent = `${fmtTime(frac * dur)} / ${fmtTime(dur)}`;
+  });
+  ccRange.addEventListener('change', () => {
+    const dur = playerVideo.duration;
+    if (isFinite(dur)) playerVideo.currentTime = (ccRange.value / 1000) * dur;
+  });
+  ccRange.addEventListener('pointerdown', () => clearTimeout(controlsTimer));
+  ccRange.addEventListener('pointerup', () => {
+    if (!playerVideo.paused) controlsTimer = setTimeout(() => customControls.classList.remove('visible'), 3000);
+  });
+
+  ccPlay.addEventListener('click', () => {
+    playerVideo.paused ? playerVideo.play().catch(() => {}) : playerVideo.pause();
+  });
+  ccNext.addEventListener('click', () => {
+    if (activeEpisode != null && activeEpisode < episodes.length) selectEpisode(activeEpisode + 1);
+  });
+  nextEpBtn.addEventListener('click', () => {
+    if (activeEpisode != null && activeEpisode < episodes.length) selectEpisode(activeEpisode + 1);
+  });
+  ccFs.addEventListener('click', () => {
+    document.fullscreenElement
+      ? document.exitFullscreen().catch(() => {})
+      : playerWrap.requestFullscreen?.().catch(() => {});
+  });
+  document.addEventListener('fullscreenchange', () => {
+    ccFs.innerHTML = document.fullscreenElement ? FS_EXIT : FS_ENTER;
+  });
+
+  playerVideo.addEventListener('timeupdate',     updateSeekBar);
+  playerVideo.addEventListener('progress',       updateSeekBar);
+  playerVideo.addEventListener('durationchange', updateSeekBar);
+  playerVideo.addEventListener('loadedmetadata', updateSeekBar);
+
+  playerWrap.addEventListener('touchstart', showControls, { passive: true });
+  playerWrap.addEventListener('mousemove',  showControls);
+
+  // ── Player overlays ───────────────────────────────────────────────────────────
   function updatePlayerOverlays() {
     const isVideo = playerVideo.style.display !== 'none';
     const isFrame = playerFrame.style.display !== 'none';
     const hasNext = activeEpisode != null && activeEpisode < episodes.length;
     tapLeft.classList.toggle('active', isVideo);
     tapRight.classList.toggle('active', isVideo);
-    if (!hasNext || (!isVideo && !isFrame)) {
-      nextEpBtn.classList.remove('visible');
-      clearTimeout(controlsTimer);
-    } else if (isFrame) {
-      nextEpBtn.classList.add('visible');
-    }
-    // For native video, visibility is driven by showVideoControls / hide timer
+    customControls.classList.toggle('active', isVideo);
+    if (!isVideo) { customControls.classList.remove('visible'); clearTimeout(controlsTimer); }
+    ccNext.style.display = hasNext ? 'flex' : 'none';
+    nextEpBtn.classList.toggle('visible', isFrame && hasNext);
   }
 
-  // Show next-ep button and (re)start the auto-hide timer, mirroring native controls.
-  function showVideoControls() {
-    const hasNext = activeEpisode != null && activeEpisode < episodes.length;
-    if (playerVideo.style.display === 'none' || !hasNext) return;
-    nextEpBtn.classList.add('visible');
-    clearTimeout(controlsTimer);
-    if (!playerVideo.paused && !playerVideo.ended) {
-      controlsTimer = setTimeout(() => nextEpBtn.classList.remove('visible'), 3000);
-    }
-  }
-
-  // Any interaction on the player shows the button (mirrors native controls behaviour)
-  playerWrap.addEventListener('touchstart', showVideoControls, { passive: true });
-  playerWrap.addEventListener('mousemove',  showVideoControls);
-
-  nextEpBtn.addEventListener('click', () => {
-    if (activeEpisode != null && activeEpisode < episodes.length) selectEpisode(activeEpisode + 1);
-  });
-
-  playerVideo.addEventListener('play',  acquireWakeLock);
-  playerVideo.addEventListener('pause', releaseWakeLock);
-  playerVideo.addEventListener('ended', () => {
-    if (activeEpisode && activeEpisode < episodes.length) selectEpisode(activeEpisode + 1);
-  });
-
-  // Keep next-ep button in sync with native controls show/hide
   playerVideo.addEventListener('play', () => {
+    acquireWakeLock();
+    updatePlayBtn();
     clearTimeout(controlsTimer);
-    controlsTimer = setTimeout(() => nextEpBtn.classList.remove('visible'), 3000);
+    controlsTimer = setTimeout(() => customControls.classList.remove('visible'), 3000);
   });
   playerVideo.addEventListener('pause', () => {
+    releaseWakeLock();
+    updatePlayBtn();
     clearTimeout(controlsTimer);
-    const hasNext = activeEpisode != null && activeEpisode < episodes.length;
-    if (hasNext) nextEpBtn.classList.add('visible');
+    customControls.classList.add('visible');
+  });
+  playerVideo.addEventListener('ended', () => {
+    updatePlayBtn();
+    if (activeEpisode && activeEpisode < episodes.length) selectEpisode(activeEpisode + 1);
   });
 
   const showError = msg => { errorBar.textContent = msg; errorBar.style.display = 'block'; };
@@ -1072,7 +1259,7 @@
     epListEl.querySelector('.ep-item.active')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 
     // Exit fullscreen before switching so video doesn't hang
-    const wasFullscreen = document.fullscreenElement === playerVideo;
+    const wasFullscreen = !!document.fullscreenElement;
     if (wasFullscreen) { try { await document.exitFullscreen(); } catch(_) {} }
 
     destroyHls();
@@ -1106,6 +1293,7 @@
         placeholder.style.display = 'none';
         playerVideo.play().catch(() => {});
         acquireWakeLock();
+        showControls();
         updateMediaSession(epNum);
         if ('mediaSession' in navigator) {
           navigator.mediaSession.setActionHandler('play',   () => playerVideo.play());
@@ -1116,7 +1304,7 @@
         updatePlayerOverlays();
         if (wasFullscreen) {
           playerVideo.addEventListener('playing', () => {
-            playerVideo.requestFullscreen?.().catch(() => {});
+            playerWrap.requestFullscreen?.().catch(() => {});
           }, { once: true });
         }
         return;
@@ -1133,6 +1321,7 @@
         playerVideo.style.display = 'block';
         placeholder.style.display = 'none';
         acquireWakeLock();
+        showControls();
         updateMediaSession(epNum);
         if ('mediaSession' in navigator) {
           navigator.mediaSession.setActionHandler('play',   () => playerVideo.play());
@@ -1143,7 +1332,7 @@
         updatePlayerOverlays();
         if (wasFullscreen) {
           playerVideo.addEventListener('playing', () => {
-            playerVideo.requestFullscreen?.().catch(() => {});
+            playerWrap.requestFullscreen?.().catch(() => {});
           }, { once: true });
         }
         return;
