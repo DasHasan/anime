@@ -123,6 +123,8 @@
       border: none;
     }
     .player-placeholder {
+      position: absolute;
+      inset: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -130,6 +132,7 @@
       gap: 16px;
       background: var(--surf-ch);
       color: var(--on-surf-var);
+      cursor: pointer;
     }
     .play-circle {
       width: 72px; height: 72px;
@@ -359,7 +362,7 @@
       opacity: 0;
       transition: opacity .2s;
     }
-    .custom-controls.visible .cc-gradient,
+    .custom-controls.visible .cc-gradient { opacity: 1; }
     .custom-controls.visible .cc-body { opacity: 1; pointer-events: auto; }
     .cc-seek-wrap {
       position: relative;
@@ -749,6 +752,8 @@
   let watchedEps    = {};
   let wakeLock      = null;
   let hlsInstance   = null;
+  let resumeTime    = null;
+  let lastSaveAt    = 0;
 
   // ── Persistence ───────────────────────────────────────────────────────────────
   const progressKey = () => `${ANIME_LIST[activeAnime].id}:${activeSeason}`;
@@ -761,6 +766,7 @@
       activeServer = raw.server ?? 1;
       watchedEps   = {};
       for (const [k, v] of Object.entries(raw.watched || {})) watchedEps[k] = new Set(v);
+      resumeTime   = raw.time   ?? null;
       return raw.episode ?? null;
     } catch { return null; }
   }
@@ -768,8 +774,11 @@
   function saveProgress() {
     const watched = {};
     for (const [k, v] of Object.entries(watchedEps)) watched[k] = [...v];
+    const t = playerVideo && isFinite(playerVideo.currentTime) && playerVideo.currentTime > 3
+      ? Math.floor(playerVideo.currentTime) : undefined;
     localStorage.setItem(STORE, JSON.stringify({
       anime: activeAnime, season: activeSeason, episode: activeEpisode, server: activeServer, watched,
+      ...(t != null ? { time: t } : {}),
     }));
   }
 
@@ -961,6 +970,16 @@
   playerVideo.addEventListener('progress',       updateSeekBar);
   playerVideo.addEventListener('durationchange', updateSeekBar);
   playerVideo.addEventListener('loadedmetadata', updateSeekBar);
+  playerVideo.addEventListener('timeupdate', () => {
+    const now = Date.now();
+    if (now - lastSaveAt > 10000) { lastSaveAt = now; saveProgress(); }
+  });
+
+  window.addEventListener('pagehide', saveProgress);
+
+  placeholder.addEventListener('click', () => {
+    if (episodes.length > 0) selectEpisode(1);
+  });
 
   playerWrap.addEventListener('touchstart', showControls, { passive: true });
   playerWrap.addEventListener('mousemove',  showControls);
@@ -1291,6 +1310,10 @@
         playerVideo.src           = mp4M[1];
         playerVideo.style.display = 'block';
         placeholder.style.display = 'none';
+        if (isResume && resumeTime) {
+          const t = resumeTime; resumeTime = null;
+          playerVideo.addEventListener('loadedmetadata', () => { playerVideo.currentTime = t; }, { once: true });
+        }
         playerVideo.play().catch(() => {});
         acquireWakeLock();
         showControls();
@@ -1320,6 +1343,10 @@
         playM3u8(m3u8Url);
         playerVideo.style.display = 'block';
         placeholder.style.display = 'none';
+        if (isResume && resumeTime) {
+          const t = resumeTime; resumeTime = null;
+          playerVideo.addEventListener('loadedmetadata', () => { playerVideo.currentTime = t; }, { once: true });
+        }
         acquireWakeLock();
         showControls();
         updateMediaSession(epNum);
