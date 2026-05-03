@@ -643,6 +643,9 @@
 
   playerVideo.addEventListener('play',  acquireWakeLock);
   playerVideo.addEventListener('pause', releaseWakeLock);
+  playerVideo.addEventListener('ended', () => {
+    if (activeEpisode && activeEpisode < episodes.length) selectEpisode(activeEpisode + 1);
+  });
 
   const showError = msg => { errorBar.textContent = msg; errorBar.style.display = 'block'; };
   const hideError = ()  => { errorBar.style.display = 'none'; };
@@ -804,6 +807,9 @@
     metaAnime.textContent = anime.label + (anime.seasons.length > 1 ? ' · ' + season.label : '');
     metaEp.textContent    = '';
     playerFrame.style.display   = 'none';
+    playerVideo.style.display   = 'none';
+    playerVideo.src              = '';
+    destroyHls();
     placeholder.style.display   = 'flex';
     placeholder.innerHTML = `
       <div class="play-circle">
